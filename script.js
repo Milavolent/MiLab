@@ -270,23 +270,82 @@ function kirimLaporanSiswa() {
 
 function renderKonselingSiswa() {
   const container = document.getElementById('list-konseling-siswa');
-  if(!semuaDataKonseling) { container.innerHTML = '<div class="col-12 text-center text-muted py-5 fw-bold">Belum ada slot jadwal.</div>'; return; }
+  if(!semuaDataKonseling) { 
+    container.innerHTML = '<div class="col-12 text-center text-muted py-5 fw-bold">Belum ada slot jadwal.</div>'; 
+    return; 
+  }
   
+  // Cek apakah siswa punya janji aktif
   const janjiAktif = semuaDataKonseling.find(k => k && k[4] === loginData.nis && (k[3] === 'Dipesan' || k[3] === 'Menunggu'));
+  
   let html = '';
+  
   semuaDataKonseling.forEach(k => {
-    if (!k || k[3] !== 'Tersedia') return;
-    html += `<div class="col-md-6 col-lg-4"><div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-orange"><h5 class="fw-bold text-dark mb-1"><i class="bi bi-calendar-event text-orange me-2"></i>${formatDateIndo(k[1])}</h5><h6 class="text-orange fw-bold mb-4"><i class="bi bi-clock me-2"></i>${k[2]}</h6><button class="btn ${janjiAktif ? 'btn-secondary text-white' : 'btn-warning text-dark'} w-100 py-3 mt-auto rounded-pill fw-bold shadow-sm" ${janjiAktif ? 'disabled' : ''} onclick="bookingJadwal('${k[0]}')">${janjiAktif ? 'Anda Memiliki Janji Aktif' : 'PILIH JADWAL INI'}</button></div></div>`;
+    if (!k) return;
+    const idJadwal = k[0];
+    let tglStr = k[1];
+    if (typeof tglStr === 'string' && tglStr.includes('T')) tglStr = tglStr.split('T')[0];
+    const waktu = k[2];
+    const status = k[3];
+    const nisPemesan = k[4];
+
+    // 1. KARTU KHUSUS: Jadwal yang sudah dipesan oleh siswa ini
+    if ((status === 'Dipesan' || status === 'Ditunda') && nisPemesan === loginData.nis) {
+      html += `
+        <div class="col-md-6 col-lg-4">
+          <div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-primary" style="background: #eff6ff;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="badge bg-primary px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">⭐ JADWAL ANDA</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1"><i class="bi bi-calendar-event text-primary me-2"></i>${formatDateIndo(tglStr)}</h5>
+            <h6 class="text-primary fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6>
+            <button class="btn btn-outline-danger bg-white w-100 py-3 mt-auto rounded-pill fw-bold shadow-sm" onclick="batalKonselingSiswa('${idJadwal}')">
+              <i class="bi bi-x-circle me-1"></i> BATALKAN JANJI
+            </button>
+          </div>
+        </div>`;
+    } 
+    // 2. KARTU BIASA: Jadwal lain yang masih kosong
+    else if (status === 'Tersedia') {
+      html += `
+        <div class="col-md-6 col-lg-4">
+          <div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-orange">
+            <h5 class="fw-bold text-dark mb-1"><i class="bi bi-calendar-event text-orange me-2"></i>${formatDateIndo(tglStr)}</h5>
+            <h6 class="text-orange fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6>
+            <button class="btn ${janjiAktif ? 'btn-secondary text-white' : 'btn-warning text-dark'} w-100 py-3 mt-auto rounded-pill fw-bold shadow-sm" ${janjiAktif ? 'disabled' : ''} onclick="bookingJadwal('${idJadwal}')">
+              ${janjiAktif ? 'Anda Memiliki Janji Aktif' : 'PILIH JADWAL INI'}
+            </button>
+          </div>
+        </div>`;
+    }
   });
+  
   container.innerHTML = html || '<div class="col-12 text-center text-muted py-5 fw-bold">Belum ada slot jadwal yang dibuka oleh Guru BK.</div>';
 }
-
 function bookingJadwal(id) {
   if(!confirm("Yakin ingin memesan jadwal ini? Anda hanya bisa memiliki maksimal 1 janji aktif.")) return;
   document.getElementById('loading-global').style.display = 'flex';
   callAPI('bookingJadwalSiswa', [id, loginData.nis, loginData.nama, loginData.kelas]).then(res => {
     document.getElementById('loading-global').style.display = 'none';
     if(res.status==='success') { alert("Berhasil mendaftar! Silakan datang tepat waktu."); muatSemuaDataAwal(); } else alert(res.message);
+  });
+}
+
+function batalKonselingSiswa(idJadwal) {
+  if(!confirm("Yakin ingin membatalkan jadwal konseling ini? Slot ini akan kembali terbuka untuk siswa lain.")) return;
+  
+  document.getElementById('loading-global').style.display = 'flex';
+  
+  // Menggunakan fungsi updateStatusKonseling milik Guru secara cerdas 
+  // untuk mengubah statusnya kembali menjadi 'Tersedia'
+  callAPI('updateStatusKonseling', [idJadwal, 'Tersedia']).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') { 
+      alert("Jadwal berhasil dibatalkan."); 
+      muatSemuaDataAwal(); 
+    } else {
+      alert(res.message);
+    }
   });
 }
 
