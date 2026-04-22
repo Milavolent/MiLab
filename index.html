@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>SANKALA - Labschool UNY</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="loading-global" style="display:none;">
+    <div class="spinner-border text-primary" role="status"></div>
+    <div class="mt-3 fw-bold text-primary">Memproses data...</div>
+  </div>
+
+  <div id="login-wrapper">
+    <div class="login-card">
+      <div class="login-left">
+        <div class="login-left-content">
+          <div class="d-flex align-items-center gap-2 mb-4">
+            <div style="width: 35px; height: 35px; border: 2px solid white; border-radius: 8px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-shield-check fs-5"></i></div>
+            <span class="fw-bold text-uppercase" style="font-size: 12px; letter-spacing: 1px;">Labschool UNY</span>
+          </div>
+          <h1 class="fw-black mb-3" style="font-weight: 900; font-size: 48px; letter-spacing: -1px;">SANKALA</h1>
+          <p class="opacity-75 fw-semibold" style="font-size: 17px; line-height: 1.6;">Sistem Manajemen Kelas Labschool.</p>
+        </div>
+      </div>
+      <div class="login-right">
+        <div class="toggle-role-container">
+          <button id="btnRoleGuru" class="btn-role active" onclick="setRoleLogin('Guru')">GURU / BK</button>
+          <button id="btnRoleSiswa" class="btn-role" onclick="setRoleLogin('Siswa')">SISWA</button>
+        </div>
+        <form id="formLogin" onsubmit="event.preventDefault(); prosesLogin();">
+          <div class="mb-2"><label id="lblUsername" class="small fw-bold text-muted">NIP PEGAWAI</label></div>
+          <input type="text" id="inpLoginUsername" class="form-control login-input" placeholder="Masukkan NIP" required>
+          
+          <div class="mb-2 mt-3"><label class="small fw-bold text-muted">PASSWORD</label></div>
+          <input type="password" id="inpLoginPassword" class="form-control login-input" placeholder="••••••••" required>
+          
+          <button type="submit" id="btnLoginSubmit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm mt-4 mb-3">MASUK</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-app-wrapper" style="display: none;">
+    <header class="app-header">
+      <div class="header-left">
+        <button class="btn-toggle-menu" onclick="toggleSidebar(true)"><i class="bi bi-list"></i></button>
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-shield-check text-primary fs-3"></i>
+          <h5 class="mb-0 fw-black d-none d-sm-block" style="font-weight: 900;">SANKALA LABSCHOOL UNY</h5>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-end d-none d-sm-block">
+          <div class="fw-bold text-dark" id="lblHeaderNamaInfo" style="font-size: 14px;">User</div>
+          <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary" style="font-size: 10px;" id="lblHeaderRoleInfo">ROLE</span>
+        </div>
+        <button class="btn btn-sm btn-light text-danger p-2" style="border-radius: 10px;" onclick="logoutApp()" title="Keluar Akun"><i class="bi bi-box-arrow-right fs-5"></i></button>
+      </div>
+    </header>
+
+    <div class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+    
+    <div class="app-container">
+      <aside class="sidebar-card" id="sidebar-main">
+        <div class="d-lg-none d-flex justify-content-between align-items-center mb-4">
+           <div class="d-flex align-items-center gap-2">
+             <div class="logo-box" style="width: 30px; height: 30px; font-size: 14px;"><i class="bi bi-shield-check"></i></div>
+             <h5 class="fw-black mb-0">SANKALA</h5>
+           </div>
+           <button class="btn-close" onclick="toggleSidebar(false)"></button>
+        </div>
+        
+        <nav class="nav flex-column gap-1">
+          <div class="nav-item guru-nav active" onclick="switchPage('page-guru-dashboard', this); toggleSidebar(false)">
+            <i class="bi bi-grid-1x2"></i> Dashboard
+          </div>
+          <div class="nav-item guru-nav" onclick="switchPage('page-guru-students', this); toggleSidebar(false)">
+            <i class="bi bi-people"></i> Data Siswa
+          </div>
+          <div class="nav-item guru-nav" onclick="switchPage('page-guru-logs', this); toggleSidebar(false)">
+            <i class="bi bi-book"></i> Catatan Siswa
+          </div>
+          <div class="nav-item guru-nav" onclick="switchPage('page-guru-attendance', this); toggleSidebar(false); muatPresensi();">
+            <i class="bi bi-person-check"></i> Presensi Harian
+          </div>
+          <div class="nav-item guru-nav" onclick="switchPage('page-guru-reports', this); toggleSidebar(false)">
+            <i class="bi bi-file-earmark-text"></i> Laporan Masuk <span id="badge-laporan-baru" class="badge bg-danger ms-auto rounded-pill" style="display:none;">0</span>
+          </div>
+          <div class="nav-item guru-nav" onclick="switchPage('page-guru-counseling', this); toggleSidebar(false)">
+            <i class="bi bi-chat-left-dots"></i> Jadwal Konseling
+          </div>
+          
+          <div class="nav-item siswa-nav active" onclick="switchPage('page-siswa-dashboard', this); toggleSidebar(false)">
+            <i class="bi bi-grid-1x2"></i> Dashboard
+          </div>
+          <div class="nav-item siswa-nav" onclick="switchPage('page-siswa-presensi', this); toggleSidebar(false)">
+            <i class="bi bi-person-check"></i> Presensi Saya
+          </div>
+          <div class="nav-item siswa-nav" onclick="switchPage('page-siswa-lapor', this); toggleSidebar(false)">
+            <i class="bi bi-shield-exclamation"></i> TerLapor
+          </div>
+          <div class="nav-item siswa-nav" onclick="switchPage('page-siswa-konseling', this); toggleSidebar(false)">
+            <i class="bi bi-chat-dots"></i> Janji Konseling
+          </div>
+          <div class="nav-item siswa-nav" onclick="switchPage('page-siswa-profil', this); toggleSidebar(false)">
+            <i class="bi bi-person"></i> Profil
+          </div>
+
+          <div class="nav-item mt-4 text-danger border border-danger border-opacity-25" onclick="logoutApp()" style="margin-top: 30px;">
+            <i class="bi bi-box-arrow-right"></i> Keluar Akun
+          </div>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <div id="page-guru-dashboard" class="page-section" style="display:none;">
+           <div class="mb-4">
+             <h2 class="fw-bold text-dark mb-1" style="font-weight: 800;">Selamat Datang, <span id="lblDashboardNama">Admin</span>! 👋</h2>
+             <p class="text-muted fw-semibold">Ini ringkasan aktivitas sistem hari ini.</p>
+           </div>
+           
+           <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-4">
+             <div class="col">
+               <div class="action-card p-4 d-flex justify-content-between align-items-start shadow-sm" style="border-radius: 20px;" onclick="document.querySelectorAll('.guru-nav')[1].click()">
+                 <div>
+                   <div class="text-muted fw-bold text-uppercase mb-2" style="font-size: 10px; letter-spacing: 0.5px;">Siswa Terdaftar</div>
+                   <h1 id="stat-siswa" class="mb-0 text-dark fw-bold" style="font-size: 32px;">0</h1>
+                 </div>
+                 <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 45px; height: 45px; border-radius: 12px; background-color: var(--primary); color: white; font-size: 20px;">
+                   <i class="bi bi-people-fill"></i>
+                 </div>
+               </div>
+             </div>
+             
+             <div class="col">
+               <div class="action-card p-4 d-flex justify-content-between align-items-start shadow-sm" style="border-radius: 20px;" onclick="document.querySelectorAll('.guru-nav')[3].click()">
+                 <div>
+                   <div class="text-muted fw-bold text-uppercase mb-2" style="font-size: 10px; letter-spacing: 0.5px;">Hadir Hari Ini</div>
+                   <h1 id="stat-hadir" class="mb-0 text-dark fw-bold" style="font-size: 32px;">-</h1>
+                 </div>
+                 <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 45px; height: 45px; border-radius: 12px; background-color: var(--green); color: white; font-size: 20px;">
+                   <i class="bi bi-person-check-fill"></i>
+                 </div>
+               </div>
+             </div>
+             
+             <div class="col">
+               <div class="action-card p-4 d-flex justify-content-between align-items-start shadow-sm" style="border-radius: 20px;" onclick="document.querySelectorAll('.guru-nav')[4].click()">
+                 <div>
+                   <div class="text-muted fw-bold text-uppercase mb-2" style="font-size: 10px; letter-spacing: 0.5px;">Laporan Baru</div>
+                   <h1 id="stat-laporan" class="mb-0 text-dark fw-bold" style="font-size: 32px;">0</h1>
+                 </div>
+                 <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 45px; height: 45px; border-radius: 12px; background-color: var(--pink); color: white; font-size: 20px;">
+                   <i class="bi bi-file-earmark-text-fill"></i>
+                 </div>
+               </div>
+             </div>
+             
+             <div class="col">
+               <div class="action-card p-4 d-flex justify-content-between align-items-start shadow-sm" style="border-radius: 20px;" onclick="document.querySelectorAll('.guru-nav')[5].click()">
+                 <div>
+                   <div class="text-muted fw-bold text-uppercase mb-2" style="font-size: 10px; letter-spacing: 0.5px;">Konseling Pending</div>
+                   <h1 id="stat-konseling" class="mb-0 text-dark fw-bold" style="font-size: 32px;">0</h1>
+                 </div>
+                 <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0 position-relative" style="width: 45px; height: 45px; border-radius: 12px; background-color: var(--orange); color: white; font-size: 20px;">
+                   <i class="bi bi-chat-dots-fill"></i>
+                 </div>
+               </div>
+             </div>
+           </div>
+
+           <div class="row g-4">
+             <div class="col-lg-6">
+               <div class="glass-card h-100 p-4 shadow-sm" style="border-radius: 24px; border: none;">
+                 <h6 class="fw-bold mb-4 text-dark"><i class="bi bi-clock text-primary me-2"></i>Aktivitas Terbaru</h6>
+                 <div class="d-flex flex-column gap-3">
+                   <div class="d-flex gap-3 align-items-center">
+                     <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="width: 45px; height: 45px; border-radius: 12px; background: #dcfce7; color: #16a34a; font-size: 20px;">
+                       <i class="bi bi-file-earmark-text-fill"></i>
+                     </div>
+                     <div>
+                       <h6 class="fw-bold mb-1 text-dark" style="font-size: 14px;" id="act-1-title">Memuat aktivitas...</h6>
+                       <small class="text-muted d-block" style="font-size: 12px;" id="act-1-desc">-</small>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+             <div class="col-lg-6">
+               <div class="quote-card shadow-sm p-4 h-100" style="background: var(--primary); border-radius: 24px; display: flex; flex-direction: column; justify-content: center;">
+                 <h5 class="fw-bold mb-3 text-white">Quote Hari Ini</h5>
+                 <h4 class="fst-italic lh-base mb-4 text-white opacity-75" style="font-size: 18px;">"Pendidikan bukan persiapan untuk hidup. Pendidikan adalah hidup itu sendiri."</h4>
+                 <div class="fw-bold fs-6 text-white">— John Dewey</div>
+               </div>
+             </div>
+           </div>
+        </div>
+
+        <div id="page-guru-students" class="page-section" style="display:none;">
+           <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+             <div>
+               <h2 class="fw-bold text-dark mb-0">Data Siswa</h2>
+               <p class="text-muted mb-0">Kelola akun dan data siswa</p>
+             </div>
+             <div class="d-flex gap-2 flex-wrap">
+               <button class="btn text-white rounded-pill px-4 fw-bold shadow-sm" style="background-color: #1e293b;" onclick="bukaModalKelolaKelas()">
+                 <i class="bi bi-list-task me-2"></i>Kelola Kelas
+               </button>
+               <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="bukaModalTambah()">
+                 <i class="bi bi-plus-lg me-2"></i>Tambah Siswa
+               </button>
+             </div>
+           </div>
+           <div class="d-flex gap-2 mb-4 overflow-auto pb-2" id="filter-kelas-container"></div>
+           <div class="table-card table-responsive">
+             <table class="table table-hover borderless mb-0 align-middle">
+               <thead>
+                 <tr>
+                   <th>Nama Lengkap</th>
+                   <th>Identitas</th>
+                   <th>Gender</th>
+                   <th>Password</th>
+                   <th class="text-end">Aksi</th>
+                 </tr>
+               </thead>
+               <tbody id="tabel-siswa"></tbody>
+             </table>
+           </div>
+        </div>
+
+        <div id="page-guru-logs" class="page-section" style="display:none;">
+           <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+             <div>
+               <h2 class="fw-bold text-dark mb-0">Catatan Harian Siswa</h2>
+               <p class="text-muted mb-0">Monitoring perilaku dan kejadian siswa</p>
+             </div>
+             <button class="btn text-white rounded-pill px-4 py-2 fw-bold shadow-sm" style="background: var(--purple);" onclick="bukaModalCatatan()">
+               <i class="bi bi-plus-lg me-2"></i>Tambah Catatan
+             </button>
+           </div>
+           <div class="d-flex flex-column gap-3" id="list-catatan"></div>
+        </div>
+
+        <div id="page-guru-attendance" class="page-section" style="display:none;">
+           <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
+             <div>
+               <h2 class="fw-bold text-dark mb-1" style="font-weight: 900;">Presensi Harian</h2>
+               <div class="text-muted fw-bold" id="label-tanggal-presensi">...</div>
+             </div>
+             <div class="d-flex gap-2">
+               <input type="date" id="inpTanggalPresensi" class="form-control px-4 fw-bold text-dark" style="border-radius: 12px; border: 1px solid #e2e8f0; height: 45px;" onchange="muatPresensi()">
+               <button class="btn btn-outline-success fw-bold d-flex align-items-center justify-content-center" style="border-radius: 12px; width: 45px; height: 45px;" title="Export Matriks Bulan Ini" onclick="exportMatriksBulanan()">
+                 <i class="bi bi-download fs-5"></i>
+               </button>
+             </div>
+           </div>
+           
+           <div class="d-flex gap-2 mb-4 overflow-auto pb-2" id="filter-kelas-presensi"></div>
+           
+           <div class="table-card">
+             <div class="row px-3 pb-3 mb-3 text-muted fw-bold text-uppercase align-items-center" style="font-size: 11px; letter-spacing: 1px; border-bottom: 2px solid #f1f5f9;">
+               <div class="col-4">Nama Siswa</div>
+               <div class="col-8 text-end pe-4 d-flex justify-content-end align-items-center gap-3">
+                 <span>Status Kehadiran</span>
+                 <button class="btn btn-sm btn-success fw-bold px-3 py-1 rounded-pill shadow-sm" style="font-size: 10px; letter-spacing: 0.5px;" onclick="tandaiHadirSemuaKelas()">
+                   <i class="bi bi-check2-all me-1"></i>Hadir Semua
+                 </button>
+               </div>
+             </div>
+             <div id="list-presensi" class="d-flex flex-column gap-1"></div>
+           </div>
+        </div>
+
+        <div id="page-guru-reports" class="page-section" style="display:none;">
+           <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+             <div>
+               <h2 class="fw-bold text-dark mb-0">Laporan Masuk</h2>
+               <p class="text-muted mb-0">Aduan dan laporan langsung dari siswa</p>
+             </div>
+             <button class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm" onclick="simulasiLaporanBaru()">
+               <i class="bi bi-phone-vibrate me-2"></i>Simulasi Laporan Baru
+             </button>
+           </div>
+           
+           <div class="d-flex gap-2 mb-4 overflow-auto pb-2" id="filter-status-laporan">
+             <button class="btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterLaporan('Semua')">Semua Laporan</button>
+             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterLaporan('Menunggu')">🔴 Menunggu</button>
+             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterLaporan('Diproses')">🟡 Diproses</button>
+             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterLaporan('Selesai')">🟢 Selesai</button>
+           </div>
+           
+           <div class="d-flex flex-column gap-3" id="list-laporan-guru"></div>
+        </div>
+
+        <div id="page-guru-counseling" class="page-section" style="display:none;">
+           <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+             <div>
+               <h2 class="fw-bold text-dark mb-0">Jadwal Konseling</h2>
+               <p class="text-muted mb-0">Buka slot waktu agar siswa bisa melakukan reservasi</p>
+             </div>
+             <button class="btn text-white rounded-pill px-4 py-2 fw-bold shadow-sm" style="background: var(--primary);" onclick="bukaModalKonseling()">
+               <i class="bi bi-plus-lg me-2"></i>Buka Jadwal Baru
+             </button>
+           </div>
+           
+           <div class="d-flex gap-2 mb-4 overflow-auto pb-2" id="filter-status-konseling">
+             <button class="btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Semua')">Semua Jadwal</button>
+             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Tersedia')">🟢 Tersedia</button>
+             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Dipesan')">🔵 Dipesan</button>
+             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Selesai')">⚪ Selesai</button>
+             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Ditunda')">🟠 Ditunda</button>
+           </div>
+           
+           <div class="row g-4" id="list-konseling-guru"></div>
+        </div>
+
+        <div id="page-siswa-dashboard" class="page-section" style="display:none;">
+           <div class="mb-4">
+             <h2 class="fw-bold text-dark mb-1" style="font-weight: 800;">Selamat Datang, <span class="txtNamaSiswaPanggilan">Siswa</span>! 👋</h2>
+             <p class="text-muted fw-semibold">Ini ringkasan aktivitas kelas hari ini.</p>
+           </div>
+           
+           <div class="row g-4 mb-4">
+             <div class="col-md-4">
+               <div class="action-card p-4 h-100 shadow-sm border-0" onclick="document.querySelectorAll('.siswa-nav')[1].click()" style="border-radius: 20px;">
+                 <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0 mb-3" style="width: 50px; height: 50px; border-radius: 14px; background-color: var(--green); color: white; font-size: 22px;">
+                   <i class="bi bi-person-check-fill"></i>
+                 </div>
+                 <h4 class="fw-bold text-dark mb-2">Cek Presensi</h4>
+                 <p class="text-muted small mb-4">Lihat riwayat kehadiranmu di kelas</p>
+                 <div class="action-btn-text text-green mt-auto">BUKA MENU <i class="bi bi-chevron-right fs-6"></i></div>
+               </div>
+             </div>
+             
+             <div class="col-md-4">
+               <div class="action-card p-4 h-100 shadow-sm border-0" onclick="document.querySelectorAll('.siswa-nav')[2].click()" style="border-radius: 20px;">
+                 <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0 mb-3" style="width: 50px; height: 50px; border-radius: 14px; background-color: var(--red); color: white; font-size: 22px;">
+                   <i class="bi bi-file-earmark-text-fill"></i>
+                 </div>
+                 <h4 class="fw-bold text-dark mb-2">Buat Laporan</h4>
+                 <p class="text-muted small mb-4">Laporkan kejadian penting di sekolah</p>
+                 <div class="action-btn-text text-red mt-auto">BUKA MENU <i class="bi bi-chevron-right fs-6"></i></div>
+               </div>
+             </div>
+             
+             <div class="col-md-4">
+               <div class="action-card p-4 h-100 shadow-sm border-0" onclick="document.querySelectorAll('.siswa-nav')[3].click()" style="border-radius: 20px;">
+                 <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0 mb-3" style="width: 50px; height: 50px; border-radius: 14px; background-color: var(--orange); color: white; font-size: 22px;">
+                   <i class="bi bi-chat-square-text-fill"></i>
+                 </div>
+                 <h4 class="fw-bold text-dark mb-2">Konseling</h4>
+                 <p class="text-muted small mb-4">Jadwal konsultasi temu guru BK</p>
+                 <div class="action-btn-text text-orange mt-auto">BUKA MENU <i class="bi bi-chevron-right fs-6"></i></div>
+               </div>
+             </div>
+           </div>
+
+           <div class="row g-4">
+             <div class="col-lg-6">
+               <div class="quote-card shadow-sm p-4" style="background: var(--primary); border-radius: 24px;">
+                 <h5 class="fw-bold mb-3 text-white">Quote Hari Ini</h5>
+                 <h4 class="fst-italic lh-base mb-4 text-white opacity-75">"Pendidikan bukan persiapan untuk hidup. Pendidikan adalah hidup itu sendiri."</h4>
+                 <div class="fw-bold fs-6 text-white">— John Dewey</div>
+               </div>
+             </div>
+           </div>
+        </div>
+
+        <div id="page-siswa-presensi" class="page-section" style="display:none;">
+           <h2 class="fw-bold text-dark mb-4">Riwayat Presensi Saya</h2>
+           <div class="table-card table-responsive">
+             <table class="table align-middle">
+               <thead><tr><th>Tanggal</th><th>Status Kehadiran</th></tr></thead>
+               <tbody id="list-presensi-saya"></tbody>
+             </table>
+           </div>
+        </div>
+
+        <div id="page-siswa-lapor" class="page-section" style="display:none;">
+           <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+             <div>
+               <h2 class="fw-bold text-dark mb-0">TerLapor</h2>
+               <p class="text-muted mb-0">Portal pelaporan aman ke Guru BK</p>
+             </div>
+             <button class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm py-2" onclick="bukaModalLapor()">
+               <i class="bi bi-plus-lg me-2"></i>Kirim Laporan
+             </button>
+           </div>
+           <div id="list-laporan-saya" class="d-flex flex-column gap-3"></div>
+        </div>
+
+        <div id="page-siswa-konseling" class="page-section" style="display:none;">
+           <h2 class="fw-bold text-dark mb-1">Janji Konseling</h2>
+           <p class="text-muted mb-4">Pilih jadwal konsultasi yang masih tersedia</p>
+           <div class="row g-4" id="list-konseling-siswa"></div>
+        </div>
+
+        <div id="page-siswa-profil" class="page-section" style="display:none;">
+           <h2 class="fw-bold text-dark mb-4">Profil Saya</h2>
+           <div class="glass-card p-5 text-center" style="max-width: 500px;">
+             <div class="d-flex align-items-center justify-content-center shadow-sm mx-auto mb-3" style="width: 80px; height: 80px; border-radius: 50%; background-color: var(--primary); color: white; font-size: 35px;">
+               <i class="bi bi-person-fill"></i>
+             </div>
+             <h3 class="fw-black mb-1 txtNamaSiswaLengkap">...</h3>
+             <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold mb-4 txtKelasSiswa">...</div>
+             <div class="d-flex justify-content-center gap-4">
+                <div class="text-center">
+                  <small class="text-muted fw-bold d-block">NIS SISWA</small>
+                  <span class="fw-bold fs-5" id="txtNisSiswa">...</span>
+                </div>
+             </div>
+             <hr class="my-4 border-light">
+             <p class="text-muted small fst-italic mb-0">Fitur ganti password sedang dikembangkan untuk rilis mendatang.</p>
+           </div>
+        </div>
+
+      </main>
+    </div>
+    
+    <div id="wrapper-chatbot-guru" style="display:none;">
+      <div class="chatbot-btn" onclick="toggleChat()">
+        <i class="bi bi-chat-fill"></i>
+      </div>
+      <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+          <span>SANKALA AI</span>
+          <button class="btn-close btn-close-white" onclick="toggleChat()"></button>
+        </div>
+        <div class="chat-body" id="chatBody"></div>
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" class="form-control rounded-pill" placeholder="Ketik pesan..." onkeypress="handleChatEnter(event)">
+          <button class="btn btn-primary rounded-circle" onclick="kirimPesanAI()">
+            <i class="bi bi-send-fill"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div> 
+
+  <div class="modal fade" id="modalLapor" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 p-2 shadow-lg">
+        <div class="modal-header border-0 pb-0 pt-4 px-4">
+          <h4 class="fw-bold text-dark mb-0"><i class="bi bi-shield-exclamation text-danger me-2"></i>Kirim Laporan</h4>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="formLaporSiswa">
+            <div class="mb-3">
+              <label class="small fw-bold text-muted">Kategori Kejadian</label>
+              <select id="inpLaporKategori" class="form-select form-select-lg bg-light border-0 fw-bold rounded-3">
+                <option value="Pelanggaran Aturan">Pelanggaran Aturan</option>
+                <option value="Bullying / Perundungan">Bullying / Perundungan</option>
+                <option value="Masalah Pribadi">Masalah Pribadi</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label class="small fw-bold text-muted">Deskripsi Kejadian</label>
+              <textarea id="inpLaporIsi" class="form-control bg-light border-0 rounded-3" rows="5" placeholder="Ceritakan secara detail kejadian yang ingin kamu laporkan..." required></textarea>
+            </div>
+            <button type="button" class="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="kirimLaporanSiswa()">KIRIM LAPORAN</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalKelolaKelas" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 p-3 shadow-lg">
+        <div class="modal-header border-0 pb-3">
+          <h4 class="fw-bold text-dark mb-0">Kelola Kelas</h4>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-2 pt-0">
+          <div class="d-flex gap-2 mb-4">
+            <input type="text" id="inpKelasBaru" class="form-control" placeholder="Nama Kelas">
+            <button class="btn btn-dark" onclick="tambahKelasBaru()">Tambah</button>
+          </div>
+          <div id="list-kelas-modal"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalFormSiswa" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 p-2 shadow-lg">
+        <div class="modal-header border-0 pb-0 pt-4 px-4">
+          <h4 class="fw-bold text-dark mb-0">Data Siswa</h4>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="formInputSiswa">
+            <input type="text" id="inpNama" class="form-control bg-light border-0 mb-3" placeholder="Nama Lengkap" required>
+            <input type="text" id="inpNIS" class="form-control bg-light border-0 mb-3" placeholder="NIS" required>
+            <select id="inpKelas" class="form-select bg-light border-0 mb-3"></select>
+            <select id="inpGender" class="form-select bg-light border-0 mb-3">
+              <option value="Laki-laki">Laki-laki</option>
+              <option value="Perempuan">Perempuan</option>
+            </select>
+            <input type="text" id="inpPassword" class="form-control bg-light border-0 mb-4" placeholder="Password" required>
+            <button type="button" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="simpanDataSiswa()">SIMPAN</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalFormCatatan" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 p-2 shadow-lg">
+        <div class="modal-header border-0 pb-0 pt-4 px-4">
+          <h4 class="fw-bold text-dark mb-0"><i class="bi bi-book text-muted me-2"></i>Catatan Harian</h4>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="formInputCatatan">
+            <input type="text" id="inpCatatanSiswa" list="listNamaSiswa" class="form-control bg-light border-0 mb-3" placeholder="Pilih Nama Siswa">
+            <datalist id="listNamaSiswa"></datalist>
+            <input type="date" id="inpCatatanTanggal" class="form-control bg-light border-0 mb-3">
+            <input type="text" id="inpCatatanKategori" class="form-control bg-light border-0 mb-3" placeholder="Kategori">
+            <textarea id="inpCatatanDetail" class="form-control bg-light border-0 mb-4" rows="4" placeholder="Isi detail catatan"></textarea>
+            <button type="button" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="simpanDataCatatan()">SIMPAN CATATAN</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalTindakLanjut" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 p-2 shadow-lg">
+        <div class="modal-header border-0 pb-0 pt-4 px-4">
+          <h4 class="fw-bold text-dark mb-0"><i class="bi bi-shield-exclamation text-danger me-2"></i>Tindak Lanjut</h4>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="inpHiddenIdLaporan">
+          <div id="txtLaporanIsi" class="mb-4 fst-italic p-3 bg-light rounded-3 text-slate-600">...</div>
+          <label class="small fw-bold text-muted mb-1">Status Laporan</label>
+          <select id="inpLaporanStatus" class="form-select form-select-lg fw-bold border-0 bg-light rounded-3 mb-3">
+            <option value="Menunggu">🔴 Menunggu</option>
+            <option value="Diproses">🟡 Diproses</option>
+            <option value="Selesai">🟢 Selesai</option>
+          </select>
+          <label class="small fw-bold text-muted mb-1">Tanggapan Guru</label>
+          <textarea id="inpLaporanTanggapan" class="form-control bg-light border-0 rounded-3 mb-4" rows="3" placeholder="Berikan tanggapan untuk siswa..."></textarea>
+          <button class="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="simpanStatusLaporan()">SIMPAN PERUBAHAN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalFormKonseling" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 p-2 shadow-lg">
+        <div class="modal-header border-0 pb-0 pt-4 px-4">
+          <h4 class="fw-bold text-dark mb-0"><i class="bi bi-calendar-plus text-primary me-2"></i>Buka Jadwal</h4>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="formInputKonseling">
+            <label class="small fw-bold text-muted mb-1">Tanggal</label>
+            <input type="date" id="inpKonselingTanggal" class="form-control form-control-lg bg-light border-0 mb-3" required>
+            <label class="small fw-bold text-muted mb-1">Waktu / Jam</label>
+            <input type="text" id="inpKonselingWaktu" class="form-control form-control-lg bg-light border-0 mb-4" placeholder="Misal: 10.00 - 11.00" required>
+            <button type="button" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="simpanDataKonseling()">BUKA SLOT</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="api.js"></script>
+  <script src="script.js"></script>
+
+</body>
+</html>
