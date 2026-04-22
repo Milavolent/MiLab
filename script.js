@@ -8,6 +8,7 @@ let activeLoginRole = 'Guru';
 let modeForm = 'tambah', nisYangDiedit = '';
 
 window.onload = () => {
+  // 1. Inisialisasi Modal Bootstrap
   modalSiswa = new bootstrap.Modal(document.getElementById('modalFormSiswa'));
   modalKelolaKelas = new bootstrap.Modal(document.getElementById('modalKelolaKelas'));
   modalCatatan = new bootstrap.Modal(document.getElementById('modalFormCatatan'));
@@ -19,30 +20,101 @@ window.onload = () => {
   document.getElementById('inpTanggalPresensi').value = today;
   document.getElementById('inpCatatanTanggal').value = today;
   document.getElementById('inpKonselingTanggal').value = today;
+
+  // 2. CEK SESSION STORAGE (Fitur Anti-Logout)
+  const savedSession = sessionStorage.getItem('sankalaSession');
+  if (savedSession) {
+    loginData = JSON.parse(savedSession);
+    pulihkanTampilanSesuaiRole();
+    muatSemuaDataAwal();
+  }
+
+  // 3. Jalankan Router pertama kali
+  jalankanRouter();
 };
 
+// ==========================================
+// SISTEM ROUTING & KEAMANAN (NEW)
+// ==========================================
+
+// Mendengarkan jika URL/Hash berubah (misal tombol Back di HP ditekan)
+window.addEventListener('hashchange', jalankanRouter);
+
 function switchPage(pageId, element) { 
-  document.querySelectorAll('.page-section').forEach(el => el.style.display = 'none'); 
-  document.getElementById(pageId).style.display = 'block'; 
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
-  if(element) element.classList.add('active'); 
+  // Mengubah perintah klik lama 'page-guru-dashboard' menjadi link '#/guru/dashboard'
+  const hashPath = '#/' + pageId.replace('page-', '').replace('-', '/');
+  window.location.hash = hashPath; // Ini akan memicu fungsi jalankanRouter()
 }
 
-function formatDateIndo(dateStr) { 
-  if(!dateStr) return '-'; 
-  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; 
-  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']; 
-  const d = new Date(dateStr); 
-  if(isNaN(d.getTime())) return dateStr; 
-  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`; 
+function jalankanRouter() {
+  const hash = window.location.hash || '#/login';
+
+  // ROUTE GUARD 1: Belum login, tapi coba-coba akses menu dalam
+  if (!loginData.role && hash !== '#/login') {
+    window.location.hash = '#/login';
+    return;
+  }
+
+  // ROUTE GUARD 2: Siswa mencoba mengakses link Guru
+  if (loginData.role === 'Siswa' && hash.startsWith('#/guru')) {
+    window.location.hash = '#/siswa/dashboard';
+    return;
+  }
+
+  // ROUTE GUARD 3: Guru mencoba mengakses link Siswa
+  if (loginData.role === 'Guru' && hash.startsWith('#/siswa')) {
+    window.location.hash = '#/guru/dashboard';
+    return;
+  }
+
+  // EKSEKUSI TAMPILAN BERDASARKAN URL
+  if (hash === '#/login') {
+    document.getElementById('login-wrapper').style.display = 'flex';
+    document.getElementById('main-app-wrapper').style.display = 'none';
+  } else {
+    document.getElementById('login-wrapper').style.display = 'none';
+    document.getElementById('main-app-wrapper').style.display = 'block';
+
+    // Terjemahkan balik '#/guru/dashboard' menjadi id div 'page-guru-dashboard'
+    const targetPageId = hash.replace('#/', 'page-').replace('/', '-');
+    
+    document.querySelectorAll('.page-section').forEach(el => el.style.display = 'none'); 
+    const pageElement = document.getElementById(targetPageId);
+    if(pageElement) pageElement.style.display = 'block';
+
+    // Beri efek warna (active) pada menu navigasi yang sedang dibuka
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
+    const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.getAttribute('onclick').includes(targetPageId));
+    if(activeNav) activeNav.classList.add('active'); 
+
+    // Fitur Khusus: Jalankan fungsi otomatis di halaman tertentu
+    if(hash === '#/guru/attendance') muatPresensi();
+  }
 }
 
-function toggleSidebar(show) {
-  const sidebar = document.getElementById('sidebar-main');
-  const overlay = document.querySelector('.sidebar-overlay');
-  if(show) { sidebar.classList.add('show'); overlay.style.display = 'block'; } 
-  else { sidebar.classList.remove('show'); overlay.style.display = 'none'; }
+function pulihkanTampilanSesuaiRole() {
+  document.getElementById('lblHeaderNamaInfo').innerText = loginData.nama; 
+  document.getElementById('lblHeaderRoleInfo').innerText = loginData.role.toUpperCase(); 
+  
+  if(loginData.role === 'Guru') {
+     document.querySelectorAll('.guru-nav').forEach(el => el.style.display = 'flex');
+     document.querySelectorAll('.siswa-nav').forEach(el => el.style.display = 'none');
+     document.getElementById('wrapper-chatbot-guru').style.display = 'block';
+     document.getElementById('lblDashboardNama').innerText = loginData.nama.split(' ')[0];
+  } else {
+     document.querySelectorAll('.guru-nav').forEach(el => el.style.display = 'none');
+     document.querySelectorAll('.siswa-nav').forEach(el => el.style.display = 'flex');
+     document.getElementById('wrapper-chatbot-guru').style.display = 'none';
+     document.querySelectorAll('.txtNamaSiswaPanggilan').forEach(el => el.innerText = loginData.nama.split(' ')[0]);
+     document.querySelectorAll('.txtNamaSiswaLengkap').forEach(el => el.innerText = loginData.nama);
+     document.querySelectorAll('.txtKelasSiswa').forEach(el => el.innerText = 'Kelas ' + loginData.kelas);
+     document.getElementById('txtNisSiswa').innerText = loginData.nis;
+  }
 }
+
+// ==========================================
+// FUNGSI UTAMA APLIKASI
+// ==========================================
 
 function setRoleLogin(role) { 
   activeLoginRole = role; 
@@ -64,28 +136,19 @@ function prosesLogin() {
     document.getElementById('loading-global').style.display = 'none';
     if(res.status === 'success') { 
       loginData = res; 
-      document.getElementById('login-wrapper').style.display = 'none'; 
-      document.getElementById('main-app-wrapper').style.display = 'block'; 
-      document.getElementById('lblHeaderNamaInfo').innerText = res.nama; 
-      document.getElementById('lblHeaderRoleInfo').innerText = res.role.toUpperCase(); 
       
-      if(res.role === 'Guru') {
-         document.querySelectorAll('.guru-nav').forEach(el => el.style.display = 'flex');
-         document.querySelectorAll('.siswa-nav').forEach(el => el.style.display = 'none');
-         document.getElementById('wrapper-chatbot-guru').style.display = 'block';
-         document.getElementById('lblDashboardNama').innerText = res.nama.split(' ')[0];
-         switchPage('page-guru-dashboard', document.querySelector('.guru-nav'));
-      } else {
-         document.querySelectorAll('.guru-nav').forEach(el => el.style.display = 'none');
-         document.querySelectorAll('.siswa-nav').forEach(el => el.style.display = 'flex');
-         document.getElementById('wrapper-chatbot-guru').style.display = 'none';
-         document.querySelectorAll('.txtNamaSiswaPanggilan').forEach(el => el.innerText = res.nama.split(' ')[0]);
-         document.querySelectorAll('.txtNamaSiswaLengkap').forEach(el => el.innerText = res.nama);
-         document.querySelectorAll('.txtKelasSiswa').forEach(el => el.innerText = 'Kelas ' + res.kelas);
-         document.getElementById('txtNisSiswa').innerText = res.nis;
-         switchPage('page-siswa-dashboard', document.querySelector('.siswa-nav'));
-      }
+      // SIMPAN DATA LOGIN KE MEMORI BROWSER
+      sessionStorage.setItem('sankalaSession', JSON.stringify(loginData));
+      
+      pulihkanTampilanSesuaiRole();
       muatSemuaDataAwal(); 
+
+      // Arahkan URL ke Dasbor yang tepat
+      if(res.role === 'Guru') {
+         window.location.hash = '#/guru/dashboard';
+      } else {
+         window.location.hash = '#/siswa/dashboard';
+      }
     } else {
       alert(res.message); 
     }
@@ -95,13 +158,33 @@ function prosesLogin() {
 function logoutApp() { 
   toggleSidebar(false);
   if(confirm('Yakin ingin keluar dari SANKALA?')) { 
-    document.getElementById('login-wrapper').style.display = 'flex';
-    document.getElementById('main-app-wrapper').style.display = 'none';
+    // HAPUS SESI DARI MEMORI
+    sessionStorage.removeItem('sankalaSession');
+    
     document.getElementById('formLogin').reset();
     semuaDataSiswa = []; semuaDataKelas = []; semuaDataCatatan = []; 
     semuaDataLaporan = []; semuaDataKonseling = []; presensiSaya = [];
     loginData = { role: '', nama: '', nis: '', kelas: '' };
+
+    // Paksa kembali ke URL Login
+    window.location.hash = '#/login';
   } 
+}
+
+function formatDateIndo(dateStr) { 
+  if(!dateStr) return '-'; 
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; 
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']; 
+  const d = new Date(dateStr); 
+  if(isNaN(d.getTime())) return dateStr; 
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`; 
+}
+
+function toggleSidebar(show) {
+  const sidebar = document.getElementById('sidebar-main');
+  const overlay = document.querySelector('.sidebar-overlay');
+  if(show) { sidebar.classList.add('show'); overlay.style.display = 'block'; } 
+  else { sidebar.classList.remove('show'); overlay.style.display = 'none'; }
 }
 
 function muatSemuaDataAwal() {
