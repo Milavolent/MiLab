@@ -453,7 +453,98 @@ function tandaiHadirSemuaKelas() { const tgl = document.getElementById('inpTangg
 function exportMatriksBulanan() { const tglStr = document.getElementById('inpTanggalPresensi').value; if(!tglStr) return; const parts = tglStr.split('-'); const tahun = parts[0], bulan = parts[1]; if(!confirm(`Unduh Matriks Presensi untuk Bulan ${bulan} Tahun ${tahun}?`)) return; callAPI('getRekapBulananData', [bulan, tahun]).then(function(dataPresensiBulan) { let csvContent = "data:text/csv;charset=utf-8,Nama Siswa,NIS,Kelas,"; for(let i=1; i<=31; i++) csvContent += i + ","; csvContent += "H,I,S,A\n"; let mapPresensi = {}; if(dataPresensiBulan && !dataPresensiBulan.error) { dataPresensiBulan.forEach(row => { if(!row || !row[2]) return; const nis = row[2], tglHari = String(row[1]).split('-')[2], inisialStatus = String(row[5]).charAt(0).toUpperCase(); if(!mapPresensi[nis]) mapPresensi[nis] = {}; mapPresensi[nis][tglHari] = inisialStatus; }); } const siswaUrut = [...semuaDataSiswa].filter(s => s && s[0]).sort((a,b) => { if(a[2] === b[2]) return String(a[0]).localeCompare(String(b[0])); return String(a[2]).localeCompare(String(b[2])); }); siswaUrut.forEach(siswa => { const nama = siswa[0], nis = siswa[1], kelas = siswa[2]; let rowCsv = `${nama},${nis},${kelas},`; let totalH = 0, totalI = 0, totalS = 0, totalA = 0; for(let d=1; d<=31; d++) { let dayStr = d < 10 ? '0'+d : ''+d; let statusHariIni = ''; if(mapPresensi[nis] && mapPresensi[nis][dayStr]) { statusHariIni = mapPresensi[nis][dayStr]; if(statusHariIni === 'H') totalH++; if(statusHariIni === 'I') totalI++; if(statusHariIni === 'S') totalS++; if(statusHariIni === 'A') totalA++; } rowCsv += statusHariIni + ","; } rowCsv += `${totalH},${totalI},${totalS},${totalA}\n`; csvContent += rowCsv; }); const encodedUri = encodeURI(csvContent); const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", `Rekap_Presensi_Bulan_${bulan}_${tahun}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); }); }
 
 function setFilterKonseling(status) { filterStatusKonseling = status; const buttons = document.getElementById('filter-status-konseling').children; for(let btn of buttons) { if(btn.innerText.includes(status) || (status === 'Semua' && btn.innerText === 'Semua Jadwal')) { btn.className = "btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0"; } else { btn.className = "btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0"; } } renderListKonselingGuru(); }
-function renderListKonselingGuru() { const container = document.getElementById('list-konseling-guru'); if(!semuaDataKonseling) return; const dt = filterStatusKonseling === 'Semua' ? semuaDataKonseling : semuaDataKonseling.filter(k => k && k[3] === filterStatusKonseling); if(!dt || dt.length === 0) { container.innerHTML = '<div class="text-center py-5 text-muted fw-bold col-12">Tidak ada jadwal konseling.</div>'; return; } let html = ''; dt.forEach(k => { if(!k || k.join('').trim() === '') return; const idJadwal = k[0]; let tglStr = k[1]; if (typeof tglStr === 'string' && tglStr.includes('T')) tglStr = tglStr.split('T')[0]; const waktu = k[2]; const status = k[3]; const nis = k[4] || ''; const namaSiswa = k[5] || ''; const kelasSiswa = k[6] || ''; if(status === 'Tersedia') { html += `<div class="col-md-6 col-lg-4"><div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-success"><div class="d-flex justify-content-between align-items-center mb-3"><span class="badge bg-success px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">🟢 TERSEDIA</span><div class="dropdown"><button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button><ul class="dropdown-menu shadow border-0"><li><a class="dropdown-item text-danger fw-bold" href="#" onclick="hapusKonseling('${idJadwal}')"><i class="bi bi-trash me-2"></i>Hapus Slot</a></li></ul></div></div><h5 class="fw-bold text-dark mb-1"><i class="bi bi-calendar-event text-primary me-2"></i>${formatDateIndo(tglStr)}</h5><h6 class="text-primary fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6><div class="mt-auto p-3 rounded-4 text-center border border-dashed border-success bg-success bg-opacity-10"><span class="text-success small fw-bold">Belum ada siswa mendaftar</span></div></div></div>`; } else if (status === 'Dipesan') { html += `<div class="col-md-6 col-lg-4"><div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-primary" style="background: linear-gradient(to bottom right, #ffffff, #eff6ff);"><div class="d-flex justify-content-between align-items-center mb-3"><span class="badge bg-primary px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">🔵 DIPESAN</span><div class="dropdown"><button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button><ul class="dropdown-menu shadow border-0"><li><a class="dropdown-item text-success fw-bold" href="#" onclick="ubahStatusKonseling('${idJadwal}', 'Selesai')"><i class="bi bi-check-circle me-2"></i>Tandai Selesai</a></li><li><a class="dropdown-item text-warning fw-bold" href="#" onclick="ubahStatusKonseling('${idJadwal}', 'Ditunda')"><i class="bi bi-clock-history me-2"></i>Tunda / Batal</a></li><li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger fw-bold" href="#" onclick="hapusKonseling('${idJadwal}')"><i class="bi bi-trash me-2"></i>Hapus Jadwal</a></li></ul></div></div><h5 class="fw-bold text-dark mb-1"><i class="bi bi-calendar-event text-primary me-2"></i>${formatDateIndo(tglStr)}</h5><h6 class="text-primary fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6><div class="mt-auto p-3 rounded-4 bg-white border shadow-sm"><div class="text-muted" style="font-size: 10px; font-weight: 800; letter-spacing: 1px;">DI-BOOKING OLEH:</div><div class="fw-bold text-dark mt-1" style="font-size: 15px;">${namaSiswa}</div><div class="text-muted small fw-bold mt-1">Kelas ${kelasSiswa} • NIS: ${nis}</div></div></div></div>`; } else if (status === 'Selesai') { html += `<div class="col-md-6 col-lg-4"><div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-secondary opacity-75" style="background: #f8fafc;"><div class="d-flex justify-content-between align-items-center mb-3"><span class="badge bg-secondary px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">⚪ SELESAI</span><div class="dropdown"><button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button><ul class="dropdown-menu shadow border-0"><li><a class="dropdown-item text-danger fw-bold" href="#" onclick="hapusKonseling('${idJadwal}')"><i class="bi bi-trash me-2"></i>Hapus Riwayat</a></li></ul></div></div><h5 class="fw-bold text-muted mb-1"><i class="bi bi-calendar-event me-2"></i>${formatDateIndo(tglStr)}</h5><h6 class="text-muted fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6><div class="mt-auto p-3 rounded-4 bg-light border"><div class="text-muted" style="font-size: 10px; font-weight: 800; letter-spacing: 1px;">DIHADIRI OLEH:</div><div class="fw-bold text-muted mt-1" style="font-size: 15px;">${namaSiswa}</div></div></div></div>`; } else if (status === 'Ditunda') { html += `<div class="col-md-6 col-lg-4"><div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-warning" style="background: #fffbeb;"><div class="d-flex justify-content-between align-items-center mb-3"><span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">🟠 DITUNDA</span><div class="dropdown"><button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button><ul class="dropdown-menu shadow border-0"><li><a class="dropdown-item text-danger fw-bold" href="#" onclick="hapusKonseling('${idJadwal}')"><i class="bi bi-trash me-2"></i>Hapus Riwayat</a></li></ul></div></div><h5 class="fw-bold text-dark mb-1"><i class="bi bi-calendar-event text-warning me-2"></i>${formatDateIndo(tglStr)}</h5><h6 class="text-warning text-dark fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6><div class="mt-auto p-3 rounded-4 bg-white border border-warning shadow-sm"><div class="text-muted" style="font-size: 10px; font-weight: 800; letter-spacing: 1px;">SISWA BERHALANGAN:</div><div class="fw-bold text-dark mt-1" style="font-size: 15px;">${namaSiswa}</div></div></div></div>`; } }); container.innerHTML = html; }
+function renderListKonselingGuru() { 
+  const container = document.getElementById('list-konseling-guru'); 
+  if(!semuaDataKonseling) return; 
+  
+  const dt = filterStatusKonseling === 'Semua' ? semuaDataKonseling : semuaDataKonseling.filter(k => k && k[3] === filterStatusKonseling); 
+  if(!dt || dt.length === 0) { 
+    container.innerHTML = '<div class="text-center py-5 text-muted fw-bold col-12">Tidak ada jadwal konseling.</div>'; 
+    return; 
+  } 
+  
+  let html = ''; 
+  dt.forEach(k => { 
+    if(!k || k.join('').trim() === '') return; 
+    const idJadwal = k[0]; 
+    let tglStr = k[1]; 
+    if (typeof tglStr === 'string' && tglStr.includes('T')) tglStr = tglStr.split('T')[0]; 
+    const waktu = k[2]; 
+    const status = k[3]; 
+    const nis = k[4] || ''; 
+    const namaSiswa = k[5] || ''; 
+    const kelasSiswa = k[6] || ''; 
+    
+    if(status === 'Tersedia') { 
+      html += `
+        <div class="col-md-6 col-lg-4">
+          <div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="badge bg-success px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">🟢 TERSEDIA</span>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                <ul class="dropdown-menu shadow border-0">
+                  <li><a class="dropdown-item text-danger fw-bold" href="javascript:void(0)" onclick="hapusKonseling('${idJadwal}')"><i class="bi bi-trash me-2"></i>Hapus Slot</a></li>
+                </ul>
+              </div>
+            </div>
+            <h5 class="fw-bold text-dark mb-1"><i class="bi bi-calendar-event text-primary me-2"></i>${formatDateIndo(tglStr)}</h5>
+            <h6 class="text-primary fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6>
+            <div class="mt-auto p-3 rounded-4 text-center border border-dashed border-success bg-success bg-opacity-10">
+              <span class="text-success small fw-bold">Belum ada siswa mendaftar</span>
+            </div>
+          </div>
+        </div>`; 
+    } else if (status === 'Dipesan') { 
+      html += `
+        <div class="col-md-6 col-lg-4">
+          <div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-primary" style="background: linear-gradient(to bottom right, #ffffff, #eff6ff);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="badge bg-primary px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">🔵 DIPESAN</span>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                <ul class="dropdown-menu shadow border-0">
+                  <li><a class="dropdown-item text-success fw-bold" href="javascript:void(0)" onclick="ubahStatusKonseling('${idJadwal}', 'Selesai')"><i class="bi bi-check-circle me-2"></i>Tandai Selesai</a></li>
+                  <li><a class="dropdown-item text-warning fw-bold" href="javascript:void(0)" onclick="ubahStatusKonseling('${idJadwal}', 'Ditunda')"><i class="bi bi-clock-history me-2"></i>Tunda / Batal</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item text-danger fw-bold" href="javascript:void(0)" onclick="hapusKonseling('${idJadwal}')"><i class="bi bi-trash me-2"></i>Hapus Jadwal</a></li>
+                </ul>
+              </div>
+            </div>
+            <h5 class="fw-bold text-dark mb-1"><i class="bi bi-calendar-event text-primary me-2"></i>${formatDateIndo(tglStr)}</h5>
+            <h6 class="text-primary fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6>
+            <div class="mt-auto p-3 rounded-4 bg-white border shadow-sm">
+              <div class="text-muted" style="font-size: 10px; font-weight: 800; letter-spacing: 1px;">DI-BOOKING OLEH:</div>
+              <div class="fw-bold text-dark mt-1" style="font-size: 15px;">${namaSiswa}</div>
+              <div class="text-muted small fw-bold mt-1">Kelas ${kelasSiswa} • NIS: ${nis}</div>
+            </div>
+          </div>
+        </div>`; 
+    } else if (status === 'Selesai') { 
+      html += `
+        <div class="col-md-6 col-lg-4">
+          <div class="glass-card p-4 h-100 d-flex flex-column border-start border-4 border-secondary opacity-75" style="background: #f8fafc;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="badge bg-secondary px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">⚪ SELESAI</span>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                <ul class="dropdown-menu shadow border-0">
+                  <li><a class="dropdown-item text-danger fw-bold" href="javascript:void(0)" onclick="hapusKonseling('${idJadwal}')"><i class="bi bi-trash me-2"></i>Hapus Riwayat</a></li>
+                </ul>
+              </div>
+            </div>
+            <h5 class="fw-bold text-muted mb-1"><i class="bi bi-calendar-event me-2"></i>${formatDateIndo(tglStr)}</h5>
+            <h6 class="text-muted fw-bold mb-4"><i class="bi bi-clock me-2"></i>${waktu}</h6>
+            <div class="mt-auto p-3 rounded-4 bg-light border">
+              <div class="text-muted" style="font-size: 10px; font-weight: 800; letter-spacing: 1px;">DIHADIRI OLEH:</div>
+              <div class="fw-bold text-muted mt-1" style="font-size: 15px;">${namaSiswa}</div>
+            </div>
+          </div>
+        </div>`; 
+    } 
+  }); 
+  container.innerHTML = html; 
+}
 function ubahStatusKonseling(idJadwal, statusBaru) { if(!confirm(`Ubah status jadwal ini menjadi ${statusBaru}?`)) return; document.getElementById('loading-global').style.display = 'flex'; callAPI('updateStatusKonseling', [idJadwal, statusBaru]).then(res => { document.getElementById('loading-global').style.display = 'none'; if(res.status === 'success') { muatSemuaDataAwal(); } else alert(res.message); }); }
 function bukaModalKonseling() { document.getElementById('formInputKonseling').reset(); document.getElementById('inpKonselingTanggal').valueAsDate = new Date(); modalKonseling.show(); }
 function simpanDataKonseling() { const tanggal = document.getElementById('inpKonselingTanggal').value; const waktu = document.getElementById('inpKonselingWaktu').value.trim(); if(!tanggal || !waktu) return alert("Tanggal dan Waktu wajib diisi!"); document.getElementById('loading-global').style.display = 'flex'; callAPI('tambahJadwalKonseling', [{ tanggal: tanggal, waktu: waktu }]).then(res => { document.getElementById('loading-global').style.display = 'none'; if(res.status === 'success') { modalKonseling.hide(); muatSemuaDataAwal(); } else alert(res.message); }); }
