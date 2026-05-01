@@ -615,7 +615,10 @@
             <label class="small fw-bold text-muted mb-1">Pilih Siswa</label>
             <input type="text" id="inpPdmpSiswa" list="listNamaSiswaPdmp" class="form-control form-control-lg bg-light border-0 mb-3" placeholder="Ketik nama siswa..." required>
             <datalist id="listNamaSiswaPdmp"></datalist>
-            
+
+            <label class="small fw-bold text-muted mb-1">Tanggal Kasus</label>
+            <input type="date" id="inpPdmpTanggal" class="form-control form-control-lg bg-light border-0 mb-3" required>
+          
             <label class="small fw-bold text-muted mb-1">Permasalahan Awal</label>
             <textarea id="inpPdmpMasalah" class="form-control bg-light border-0 mb-4 rounded-3" rows="3" placeholder="Deskripsikan masalah utama yang sedang dialami siswa..." required></textarea>
             
@@ -635,6 +638,8 @@
         </div>
         <div class="modal-body p-4">
           <input type="hidden" id="inpHiddenIdPdmp">
+          <label class="small fw-bold text-muted mb-1">Tanggal Update</label>
+          <input type="date" id="inpPdmpUpdateTanggal" class="form-control form-control-lg bg-light border-0 mb-3" required>
           <p class="text-muted small fw-bold mb-3">Tuliskan tindakan apa saja yang sudah dilakukan hari ini untuk membantu siswa tersebut.</p>
           <textarea id="inpPdmpTindakLanjut" class="form-control bg-light border-0 rounded-3 mb-4" rows="4" placeholder="Misal: Sudah memanggil anak ke ruang BK dan memberikan motivasi..." required></textarea>
           <button class="btn btn-warning text-dark w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="simpanUpdatePendampingan()">SIMPAN UPDATE</button>
