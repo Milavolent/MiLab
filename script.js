@@ -9,6 +9,9 @@ let modeForm = 'tambah', nisYangDiedit = '';
 let semuaDataPendampingan = [];
 let filterStatusPendampingan = 'Aktif';
 let modalFormPendampingan, modalUpdatePendampingan;
+let semuaDataKonsultasiOrtu = [];
+let filterStatusKonsultasiOrtu = 'Semua';
+let modalFormKonsultasiOrtu, modalUpdateKonsultasiOrtu;
 
 window.onload = () => {
   // 1. Inisialisasi Modal Bootstrap
@@ -20,6 +23,8 @@ window.onload = () => {
   modalLapor = new bootstrap.Modal(document.getElementById('modalLapor'));
   modalFormPendampingan = new bootstrap.Modal(document.getElementById('modalFormPendampingan'));
   modalUpdatePendampingan = new bootstrap.Modal(document.getElementById('modalUpdatePendampingan'));
+  modalFormKonsultasiOrtu = new bootstrap.Modal(document.getElementById('modalFormKonsultasiOrtu'));
+  modalUpdateKonsultasiOrtu = new bootstrap.Modal(document.getElementById('modalUpdateKonsultasiOrtu'));
   
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('inpTanggalPresensi').value = today;
@@ -201,6 +206,7 @@ function muatSemuaDataAwal() {
     try { semuaDataKonseling = res.konseling || []; renderListKonselingGuru(); renderKonselingSiswa(); } catch(e){}
     try { presensiSaya = res.presensiSaya || []; renderPresensiSaya(); } catch(e){}
     try { semuaDataPendampingan = res.pendampingan || []; renderDropdownSiswaPdmp(); renderListPendampinganGuru(); } catch(e){}
+    try { semuaDataKonsultasiOrtu = res.konsultasiOrtu || []; renderDropdownSiswaKonsultasiOrtu(); renderListKonsultasiOrtu(); } catch(e){}
     
     if(loginData.role === 'Guru') {
        document.getElementById('stat-siswa').innerText = semuaDataSiswa.length;
@@ -687,5 +693,144 @@ function simpanUpdatePendampingan() {
   callAPI('updateRiwayatPendampingan', [idKasus, teks, tanggal]).then(res => {
     document.getElementById('loading-global').style.display = 'none';
     if(res.status === 'success') { modalUpdatePendampingan.hide(); muatSemuaDataAwal(); } else alert(res.message);
+  });
+}
+
+// ==========================================
+// MENU KONSULTASI ORANG TUA
+// ==========================================
+function renderDropdownSiswaKonsultasiOrtu() { 
+  if(!semuaDataSiswa) return; 
+  const siswaUrut = [...semuaDataSiswa].filter(s => s && s[0]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))); 
+  document.getElementById('listNamaSiswaOrtu').innerHTML = siswaUrut.map(s => `<option value="${s[0]}">Kelas ${s[2]||'-'}</option>`).join(''); 
+}
+
+function setFilterKonsultasiOrtu(status) { 
+  filterStatusKonsultasiOrtu = status; 
+  const buttons = document.getElementById('filter-status-konsultasi-ortu').children; 
+  buttons[0].className = status === 'Semua' ? "btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" : "btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0";
+  buttons[1].className = status === 'Aktif' ? "btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" : "btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0";
+  buttons[2].className = status === 'Selesai' ? "btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" : "btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0";
+  renderListKonsultasiOrtu(); 
+}
+
+function renderListKonsultasiOrtu() {
+  const container = document.getElementById('list-konsultasi-ortu-guru');
+  if(!semuaDataKonsultasiOrtu || semuaDataKonsultasiOrtu.length === 0) { 
+    container.innerHTML = '<div class="col-12 text-center text-muted py-5 fw-bold">Belum ada data konsultasi orang tua.</div>'; return; 
+  }
+  
+  const dt = filterStatusKonsultasiOrtu === 'Semua' ? semuaDataKonsultasiOrtu : semuaDataKonsultasiOrtu.filter(p => p && p[8] === filterStatusKonsultasiOrtu);
+  
+  if(dt.length === 0) { 
+    container.innerHTML = '<div class="col-12 text-center text-muted py-5 fw-bold">Tidak ada kasus di status ini.</div>'; return; 
+  }
+
+  let html = '';
+  dt.forEach(p => {
+    if(!p) return;
+    const id = p[0], tgl = p[1], nis = p[2], namaSiswa = p[3], kelas = p[4], namaOrtu = p[5], topik = p[6], tindakLanjut = p[7], status = p[8];
+    
+    html += `
+      <div class="col-md-6 col-xl-4">
+        <div class="glass-card p-4 h-100 d-flex flex-column ${status === 'Aktif' ? 'border-start border-4 border-primary' : 'border-start border-4 border-secondary opacity-75'}">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+               <span class="badge ${status === 'Aktif' ? 'bg-primary' : 'bg-secondary'} px-3 py-2 rounded-pill fw-bold text-uppercase mb-2" style="letter-spacing: 0.5px;">${status === 'Aktif' ? '🟢 AKTIF' : '⚪ SELESAI'}</span>
+               <div class="text-muted small fw-bold"><i class="bi bi-calendar-event me-1"></i> ${formatDateIndo(tgl)}</div>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+              <ul class="dropdown-menu shadow border-0">
+                ${status === 'Aktif' ? `
+                  <li><a class="dropdown-item text-warning fw-bold" href="javascript:void(0)" onclick="bukaModalUpdateKonsultasiOrtu('${id}')"><i class="bi bi-pencil-square me-2"></i>Update Tindak Lanjut</a></li>
+                  <li><a class="dropdown-item text-success fw-bold" href="javascript:void(0)" onclick="ubahStatusKonsultasiOrtu('${id}', 'Selesai')"><i class="bi bi-check-circle me-2"></i>Tandai Selesai</a></li>
+                ` : `
+                  <li><a class="dropdown-item text-primary fw-bold" href="javascript:void(0)" onclick="ubahStatusKonsultasiOrtu('${id}', 'Aktif')"><i class="bi bi-arrow-counterclockwise me-2"></i>Buka Kembali Kasus</a></li>
+                `}
+              </ul>
+            </div>
+          </div>
+          
+          <h5 class="fw-bold text-dark mb-1">${namaSiswa}</h5>
+          <p class="text-muted small fw-bold mb-3">Kelas ${kelas} • NIS: ${nis}</p>
+
+          <div class="p-2 mb-3 rounded" style="background: #f8fafc; border-left: 3px solid #cbd5e1;">
+             <div style="font-size: 11px; font-weight: 800; color: #64748b;">ORANG TUA / WALI:</div>
+             <div class="fw-bold text-dark">${namaOrtu}</div>
+          </div>
+          
+          <div class="mb-3">
+            <div class="text-muted fw-bold mb-1" style="font-size: 10px; letter-spacing: 1px;">TOPIK KONSULTASI AWAL:</div>
+            <div class="fw-bold text-dark" style="font-size: 14px;">"${topik}"</div>
+          </div>
+          
+          <div class="mt-auto pt-3 border-top border-light">
+            <div class="text-muted fw-bold mb-2" style="font-size: 10px; letter-spacing: 1px;">RIWAYAT TINDAK LANJUT:</div>
+            ${tindakLanjut ? `
+              <div class="p-3 rounded-4 bg-light border border-secondary border-opacity-25" style="max-height: 180px; overflow-y: auto;">
+                <div class="text-dark" style="white-space: pre-wrap; font-size: 13px; line-height: 1.6;">${tindakLanjut}</div>
+              </div>
+            ` : `
+              <div class="text-muted fst-italic small">Belum ada catatan tindak lanjut.</div>
+            `}
+          </div>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function bukaModalKonsultasiOrtu() {
+  document.getElementById('formInputKonsultasiOrtu').reset();
+  document.getElementById('inpOrtuTanggal').valueAsDate = new Date(); 
+  modalFormKonsultasiOrtu.show();
+}
+
+function simpanKonsultasiOrtuBaru() {
+  const namaSiswaInput = document.getElementById('inpOrtuSiswa').value.trim();
+  const namaOrtu = document.getElementById('inpOrtuNama').value.trim();
+  const tanggal = document.getElementById('inpOrtuTanggal').value;
+  const topik = document.getElementById('inpOrtuTopik').value.trim();
+  
+  if(!namaSiswaInput || !namaOrtu || !tanggal || !topik) return alert('Lengkapi semua form!');
+  
+  const siswaDitemukan = semuaDataSiswa.find(s => s && s[0] && String(s[0]).toLowerCase() === namaSiswaInput.toLowerCase());
+  if(!siswaDitemukan) return alert('Nama siswa tidak ditemukan di sistem!');
+  
+  document.getElementById('loading-global').style.display = 'flex';
+  callAPI('tambahKonsultasiOrtu', [{ nis: siswaDitemukan[1], nama: siswaDitemukan[0], kelas: siswaDitemukan[2], namaOrtu: namaOrtu, topik: topik, tanggal: tanggal }]).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') { modalFormKonsultasiOrtu.hide(); muatSemuaDataAwal(); } else alert(res.message);
+  });
+}
+
+function bukaModalUpdateKonsultasiOrtu(idKonsul) {
+  document.getElementById('inpHiddenIdOrtu').value = idKonsul;
+  document.getElementById('inpOrtuTindakLanjut').value = '';
+  document.getElementById('inpOrtuUpdateTanggal').valueAsDate = new Date();
+  modalUpdateKonsultasiOrtu.show();
+}
+
+function simpanUpdateKonsultasiOrtu() {
+  const idKonsul = document.getElementById('inpHiddenIdOrtu').value;
+  const teks = document.getElementById('inpOrtuTindakLanjut').value.trim();
+  const tanggal = document.getElementById('inpOrtuUpdateTanggal').value;
+  
+  if(!teks || !tanggal) return alert('Silakan isi tanggal dan jurnal tindak lanjut!');
+  
+  document.getElementById('loading-global').style.display = 'flex';
+  callAPI('updateTindakLanjutOrtu', [idKonsul, teks, tanggal]).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') { modalUpdateKonsultasiOrtu.hide(); muatSemuaDataAwal(); } else alert(res.message);
+  });
+}
+
+function ubahStatusKonsultasiOrtu(idKonsul, statusBaru) {
+  if(!confirm(`Yakin mengubah status menjadi ${statusBaru}?`)) return;
+  document.getElementById('loading-global').style.display = 'flex';
+  callAPI('ubahStatusKonsultasiOrtu', [idKonsul, statusBaru]).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') muatSemuaDataAwal(); else alert(res.message);
   });
 }
