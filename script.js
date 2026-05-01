@@ -642,19 +642,25 @@ function renderListPendampinganGuru() {
 
 function bukaModalPendampingan() {
   document.getElementById('formInputPendampingan').reset();
+  // Set default tanggal hari ini
+  document.getElementById('inpPdmpTanggal').valueAsDate = new Date(); 
   modalFormPendampingan.show();
 }
 
 function simpanPendampinganBaru() {
   const namaInput = document.getElementById('inpPdmpSiswa').value.trim();
   const masalah = document.getElementById('inpPdmpMasalah').value.trim();
-  if(!namaInput || !masalah) return alert('Pilih siswa dan isi masalahnya!');
+  const tanggal = document.getElementById('inpPdmpTanggal').value; // Ambil nilai tanggal
+  
+  if(!namaInput || !masalah || !tanggal) return alert('Lengkapi semua data!');
   
   const siswaDitemukan = semuaDataSiswa.find(s => s && s[0] && String(s[0]).toLowerCase() === namaInput.toLowerCase());
   if(!siswaDitemukan) return alert('Nama siswa tidak ditemukan di sistem!');
   
   document.getElementById('loading-global').style.display = 'flex';
-  callAPI('tambahPendampingan', [{ nis: siswaDitemukan[1], nama: siswaDitemukan[0], kelas: siswaDitemukan[2], masalah: masalah }]).then(res => {
+  
+  // Kirim data beserta tanggal ke backend
+  callAPI('tambahPendampingan', [{ nis: siswaDitemukan[1], nama: siswaDitemukan[0], kelas: siswaDitemukan[2], masalah: masalah, tanggal: tanggal }]).then(res => {
     document.getElementById('loading-global').style.display = 'none';
     if(res.status === 'success') { modalFormPendampingan.hide(); muatSemuaDataAwal(); } else alert(res.message);
   });
@@ -663,26 +669,23 @@ function simpanPendampinganBaru() {
 function bukaModalUpdatePendampingan(idKasus) {
   document.getElementById('inpHiddenIdPdmp').value = idKasus;
   document.getElementById('inpPdmpTindakLanjut').value = '';
+  // Set default tanggal hari ini
+  document.getElementById('inpPdmpUpdateTanggal').valueAsDate = new Date();
   modalUpdatePendampingan.show();
 }
 
 function simpanUpdatePendampingan() {
   const idKasus = document.getElementById('inpHiddenIdPdmp').value;
   const teks = document.getElementById('inpPdmpTindakLanjut').value.trim();
-  if(!teks) return alert('Silakan isi jurnal tindak lanjut hari ini!');
+  const tanggal = document.getElementById('inpPdmpUpdateTanggal').value; // Ambil nilai tanggal update
+  
+  if(!teks || !tanggal) return alert('Silakan isi tanggal dan jurnal tindak lanjut!');
   
   document.getElementById('loading-global').style.display = 'flex';
-  callAPI('updateRiwayatPendampingan', [idKasus, teks]).then(res => {
+  
+  // Kirim id, teks, dan TANGGAL ke backend
+  callAPI('updateRiwayatPendampingan', [idKasus, teks, tanggal]).then(res => {
     document.getElementById('loading-global').style.display = 'none';
     if(res.status === 'success') { modalUpdatePendampingan.hide(); muatSemuaDataAwal(); } else alert(res.message);
-  });
-}
-
-function ubahStatusPendampingan(idKasus, statusBaru) {
-  if(!confirm(`Yakin ingin mengubah status kasus ini menjadi ${statusBaru}?`)) return;
-  document.getElementById('loading-global').style.display = 'flex';
-  callAPI('ubahStatusKasus', [idKasus, statusBaru]).then(res => {
-    document.getElementById('loading-global').style.display = 'none';
-    if(res.status === 'success') muatSemuaDataAwal(); else alert(res.message);
   });
 }
