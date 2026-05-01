@@ -315,36 +315,57 @@
                <i class="bi bi-plus-lg me-2"></i>Buka Jadwal Baru
              </button>
            </div>
-           
-           <div class="d-flex gap-2 mb-4 overflow-auto pb-2" id="filter-status-konseling">
-             <button class="btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Semua')">Semua Jadwal</button>
-             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Tersedia')">🟢 Tersedia</button>
-             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Dipesan')">🔵 Dipesan</button>
-             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonseling('Selesai')">⚪ Selesai</button>
-           </div>
-           
-           <div class="row g-4" id="list-konseling-guru"></div>
+        <!-- MODAL BUKA KONSULTASI ORTU -->
+        <div class="modal fade" id="modalFormKonsultasiOrtu" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 p-2 shadow-lg">
+              <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h4 class="fw-bold text-dark mb-0"><i class="bi bi-people-fill text-primary me-2"></i>Catat Konsultasi Ortu</h4>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body p-4">
+                <form id="formInputKonsultasiOrtu">
+                  <label class="small fw-bold text-muted mb-1">Nama Siswa (Anak)</label>
+                  <input type="text" id="inpOrtuSiswa" list="listNamaSiswaOrtu" class="form-control form-control-lg bg-light border-0 mb-3" placeholder="Ketik nama siswa..." required>
+                  <datalist id="listNamaSiswaOrtu"></datalist>
+                  
+                  <label class="small fw-bold text-muted mb-1">Nama Orang Tua / Wali</label>
+                  <input type="text" id="inpOrtuNama" class="form-control form-control-lg bg-light border-0 mb-3" placeholder="Bpk/Ibu..." required>
+      
+                  <label class="small fw-bold text-muted mb-1">Tanggal Konsultasi</label>
+                  <input type="date" id="inpOrtuTanggal" class="form-control form-control-lg bg-light border-0 mb-3" required>
+                  
+                  <label class="small fw-bold text-muted mb-1">Topik Utama / Keluhan</label>
+                  <textarea id="inpOrtuTopik" class="form-control bg-light border-0 mb-4 rounded-3" rows="3" placeholder="Deskripsikan masalah awal yang dibahas..." required></textarea>
+                  
+                  <button type="button" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="simpanKonsultasiOrtuBaru()">SIMPAN DATA</button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <!-- INI HALAMAN KONSULTASI ORTU YANG HILANG -->
-        <div id="page-guru-konsultasi-ortu" class="page-section" style="display:none;">
-           <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-             <div>
-               <h2 class="fw-bold text-dark mb-0">Konsultasi Orang Tua</h2>
-               <p class="text-muted mb-0">Jurnal pertemuan dan diskusi dengan wali murid</p>
-             </div>
-             <button class="btn text-white rounded-pill px-4 py-2 fw-bold shadow-sm" style="background: var(--primary);" onclick="bukaModalKonsultasiOrtu()">
-               <i class="bi bi-plus-lg me-2"></i>Catat Konsultasi Baru
-             </button>
-           </div>
-           
-           <div class="d-flex gap-2 mb-4 overflow-auto pb-2" id="filter-status-konsultasi-ortu">
-             <button class="btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonsultasiOrtu('Semua')">🔵 Semua</button>
-             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonsultasiOrtu('Aktif')">🟢 Kasus Aktif</button>
-             <button class="btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0" onclick="setFilterKonsultasiOrtu('Selesai')">⚪ Selesai</button>
-           </div>
-           
-           <div class="row g-4" id="list-konsultasi-ortu-guru"></div>
+      
+        <!-- MODAL UPDATE KONSULTASI ORTU -->
+        <div class="modal fade" id="modalUpdateKonsultasiOrtu" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 p-2 shadow-lg">
+              <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h4 class="fw-bold text-dark mb-0"><i class="bi bi-journal-plus text-warning me-2"></i>Update Tindak Lanjut</h4>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body p-4">
+                <input type="hidden" id="inpHiddenIdOrtu">
+                
+                <label class="small fw-bold text-muted mb-1">Tanggal Update</label>
+                <input type="date" id="inpOrtuUpdateTanggal" class="form-control form-control-lg bg-light border-0 mb-3" required>
+      
+                <label class="small fw-bold text-muted mb-1">Catatan Tindak Lanjut</label>
+                <textarea id="inpOrtuTindakLanjut" class="form-control bg-light border-0 rounded-3 mb-4" rows="4" placeholder="Misal: Sudah memanggil anak ke ruang BK..." required></textarea>
+                
+                <button class="btn btn-warning text-dark w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="simpanUpdateKonsultasiOrtu()">SIMPAN UPDATE</button>
+              </div>
+            </div>
+          </div>
         </div>
           
         <div id="page-siswa-dashboard" class="page-section" style="display:none;">
