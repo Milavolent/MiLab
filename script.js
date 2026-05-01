@@ -6,6 +6,9 @@ let presensiHariIni = {};
 let loginData = { role: '', nama: '', nis: '', kelas: '' };
 let activeLoginRole = 'Guru';
 let modeForm = 'tambah', nisYangDiedit = '';
+let semuaDataPendampingan = [];
+let filterStatusPendampingan = 'Aktif';
+let modalFormPendampingan, modalUpdatePendampingan;
 
 window.onload = () => {
   // 1. Inisialisasi Modal Bootstrap
@@ -15,6 +18,8 @@ window.onload = () => {
   modalTindakLanjut = new bootstrap.Modal(document.getElementById('modalTindakLanjut'));
   modalKonseling = new bootstrap.Modal(document.getElementById('modalFormKonseling'));
   modalLapor = new bootstrap.Modal(document.getElementById('modalLapor'));
+  modalFormPendampingan = new bootstrap.Modal(document.getElementById('modalFormPendampingan'));
+  modalUpdatePendampingan = new bootstrap.Modal(document.getElementById('modalUpdatePendampingan'));
   
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('inpTanggalPresensi').value = today;
@@ -195,6 +200,7 @@ function muatSemuaDataAwal() {
     try { semuaDataLaporan = res.laporan || []; updateDashboardBadgeLaporan(); renderListLaporanGuru(); renderLaporanSiswa(); } catch(e){}
     try { semuaDataKonseling = res.konseling || []; renderListKonselingGuru(); renderKonselingSiswa(); } catch(e){}
     try { presensiSaya = res.presensiSaya || []; renderPresensiSaya(); } catch(e){}
+    try { semuaDataPendampingan = res.pendampingan || []; renderDropdownSiswaPdmp(); renderListPendampinganGuru(); } catch(e){}
     
     if(loginData.role === 'Guru') {
        document.getElementById('stat-siswa').innerText = semuaDataSiswa.length;
@@ -563,3 +569,120 @@ function konfirmasiHapus(nis) { if(confirm('Hapus siswa ini?')) { document.getEl
 function toggleChat() { const chat = document.getElementById('chatWindow'); chat.style.display = chat.style.display === 'flex' ? 'none' : 'flex'; }
 function handleChatEnter(e) { if (e.key === 'Enter') kirimPesanAI(); }
 function kirimPesanAI() { const input = document.getElementById('chatInput'); const pesan = input.value.trim(); if (!pesan) return; const chatBody = document.getElementById('chatBody'); chatBody.innerHTML += `<div class="msg-user">${pesan}</div>`; input.value = ''; const loadingId = 'loading-' + Date.now(); chatBody.innerHTML += `<div id="${loadingId}" class="msg-bot text-muted fst-italic">AI mengetik...</div>`; chatBody.scrollTop = chatBody.scrollHeight; callAPI('chatSankalaAI', [pesan, loginData.nama]).then(function(balasan) { document.getElementById(loadingId).remove(); chatBody.innerHTML += `<div class="msg-bot">${balasan}</div>`; chatBody.scrollTop = chatBody.scrollHeight; }); }
+// ==========================================
+// MENU PENDAMPINGAN SISWA
+// ==========================================
+function renderDropdownSiswaPdmp() { 
+  if(!semuaDataSiswa) return; 
+  const siswaUrut = [...semuaDataSiswa].filter(s => s && s[0]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))); 
+  document.getElementById('listNamaSiswaPdmp').innerHTML = siswaUrut.map(s => `<option value="${s[0]}">Kelas ${s[2]||'-'}</option>`).join(''); 
+}
+
+function setFilterPendampingan(status) { 
+  filterStatusPendampingan = status; 
+  const buttons = document.getElementById('filter-status-pendampingan').children; 
+  buttons[0].className = status === 'Aktif' ? "btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" : "btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0";
+  buttons[1].className = status === 'Selesai' ? "btn btn-primary rounded-pill px-4 fw-bold flex-shrink-0" : "btn btn-outline-secondary bg-white text-dark border-0 shadow-sm rounded-pill px-4 fw-bold flex-shrink-0";
+  renderListPendampinganGuru(); 
+}
+
+function renderListPendampinganGuru() {
+  const container = document.getElementById('list-pendampingan-guru');
+  if(!semuaDataPendampingan || semuaDataPendampingan.length === 0) { 
+    container.innerHTML = '<div class="col-12 text-center text-muted py-5 fw-bold">Belum ada data pendampingan.</div>'; return; 
+  }
+  
+  const dt = semuaDataPendampingan.filter(p => p && p[6] === filterStatusPendampingan);
+  if(dt.length === 0) { 
+    container.innerHTML = '<div class="col-12 text-center text-muted py-5 fw-bold">Tidak ada kasus di status ini.</div>'; return; 
+  }
+
+  let html = '';
+  dt.forEach(p => {
+    if(!p) return;
+    const id = p[0], nis = p[1], nama = p[2], kelas = p[3], masalah = p[4], riwayat = p[5], status = p[6];
+    
+    html += `
+      <div class="col-md-6 col-xl-4">
+        <div class="glass-card p-4 h-100 d-flex flex-column ${status === 'Aktif' ? 'border-start border-4 border-primary' : 'border-start border-4 border-secondary opacity-75'}">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="badge ${status === 'Aktif' ? 'bg-primary' : 'bg-secondary'} px-3 py-2 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.5px;">${status === 'Aktif' ? '🟢 AKTIF' : '⚪ SELESAI'}</span>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-light text-muted" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+              <ul class="dropdown-menu shadow border-0">
+                ${status === 'Aktif' ? `
+                  <li><a class="dropdown-item text-warning fw-bold" href="javascript:void(0)" onclick="bukaModalUpdatePendampingan('${id}')"><i class="bi bi-pencil-square me-2"></i>Update Progres</a></li>
+                  <li><a class="dropdown-item text-success fw-bold" href="javascript:void(0)" onclick="ubahStatusPendampingan('${id}', 'Selesai')"><i class="bi bi-check-circle me-2"></i>Tandai Selesai (Tutup Kasus)</a></li>
+                ` : `
+                  <li><a class="dropdown-item text-primary fw-bold" href="javascript:void(0)" onclick="ubahStatusPendampingan('${id}', 'Aktif')"><i class="bi bi-arrow-counterclockwise me-2"></i>Buka Kembali Kasus</a></li>
+                `}
+              </ul>
+            </div>
+          </div>
+          
+          <h5 class="fw-bold text-dark mb-0">${nama}</h5>
+          <p class="text-muted small fw-bold mb-3">Kelas ${kelas} • NIS: ${nis}</p>
+          
+          <div class="mb-2">
+            <div class="text-muted fw-bold mb-1" style="font-size: 10px; letter-spacing: 1px;">MASALAH UTAMA:</div>
+            <div class="fw-bold text-danger" style="font-size: 14px;">"${masalah}"</div>
+          </div>
+          
+          <div class="mt-auto pt-3">
+            <div class="p-3 rounded-4 bg-light border border-secondary border-opacity-25" style="max-height: 200px; overflow-y: auto;">
+              <div class="text-muted fw-bold mb-2" style="font-size: 10px; letter-spacing: 1px;">RIWAYAT TINDAK LANJUT:</div>
+              <div class="text-dark" style="white-space: pre-wrap; font-size: 13px; line-height: 1.6;">${riwayat}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function bukaModalPendampingan() {
+  document.getElementById('formInputPendampingan').reset();
+  modalFormPendampingan.show();
+}
+
+function simpanPendampinganBaru() {
+  const namaInput = document.getElementById('inpPdmpSiswa').value.trim();
+  const masalah = document.getElementById('inpPdmpMasalah').value.trim();
+  if(!namaInput || !masalah) return alert('Pilih siswa dan isi masalahnya!');
+  
+  const siswaDitemukan = semuaDataSiswa.find(s => s && s[0] && String(s[0]).toLowerCase() === namaInput.toLowerCase());
+  if(!siswaDitemukan) return alert('Nama siswa tidak ditemukan di sistem!');
+  
+  document.getElementById('loading-global').style.display = 'flex';
+  callAPI('tambahPendampingan', [{ nis: siswaDitemukan[1], nama: siswaDitemukan[0], kelas: siswaDitemukan[2], masalah: masalah }]).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') { modalFormPendampingan.hide(); muatSemuaDataAwal(); } else alert(res.message);
+  });
+}
+
+function bukaModalUpdatePendampingan(idKasus) {
+  document.getElementById('inpHiddenIdPdmp').value = idKasus;
+  document.getElementById('inpPdmpTindakLanjut').value = '';
+  modalUpdatePendampingan.show();
+}
+
+function simpanUpdatePendampingan() {
+  const idKasus = document.getElementById('inpHiddenIdPdmp').value;
+  const teks = document.getElementById('inpPdmpTindakLanjut').value.trim();
+  if(!teks) return alert('Silakan isi jurnal tindak lanjut hari ini!');
+  
+  document.getElementById('loading-global').style.display = 'flex';
+  callAPI('updateRiwayatPendampingan', [idKasus, teks]).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') { modalUpdatePendampingan.hide(); muatSemuaDataAwal(); } else alert(res.message);
+  });
+}
+
+function ubahStatusPendampingan(idKasus, statusBaru) {
+  if(!confirm(`Yakin ingin mengubah status kasus ini menjadi ${statusBaru}?`)) return;
+  document.getElementById('loading-global').style.display = 'flex';
+  callAPI('ubahStatusKasus', [idKasus, statusBaru]).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') muatSemuaDataAwal(); else alert(res.message);
+  });
+}
