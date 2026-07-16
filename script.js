@@ -834,3 +834,149 @@ function ubahStatusKonsultasiOrtu(idKonsul, statusBaru) {
     if(res.status === 'success') muatSemuaDataAwal(); else alert(res.message);
   });
 }
+
+// ==========================================
+// MODUL EKSTRAKURIKULER
+// ==========================================
+let presensiEkstraSaatIni = {};
+let daftarSiswaEkstra = [];
+
+// Panggil fungsi ini saat menu diklik
+function initEkstraGuru() {
+  document.getElementById('inpEkstraTanggal').valueAsDate = new Date();
+  document.getElementById('loading-global').style.display = 'flex';
+  
+  // Mengambil NIP (sebagai username/ID guru) dari loginData
+  const nipGuru = document.getElementById('inpLoginUsername').value; // Atau bisa dari loginData jika Anda menyimpannya
+  
+  callAPI('getEkstraGuru', [nipGuru]).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') {
+      const select = document.getElementById('inpEkstraPilih');
+      select.innerHTML = '<option value="">-- Pilih Ekstrakurikuler --</option>' + 
+                         res.data.map(eks => `<option value="${eks}">${eks}</option>`).join('');
+    }
+  });
+}
+
+// Memuat daftar siswa berdasarkan ekstra yang dipilih
+function muatSiswaEkstra() {
+  const namaEkstra = document.getElementById('inpEkstraPilih').value;
+  const container = document.getElementById('list-siswa-ekstra');
+  
+  if(!namaEkstra) {
+    container.innerHTML = '<div class="text-center py-5 text-muted fw-bold">Pilih Ekstrakurikuler terlebih dahulu.</div>';
+    return;
+  }
+
+  container.innerHTML = '<div class="text-center py-5 text-muted fw-bold">Memuat data siswa...</div>';
+  presensiEkstraSaatIni = {}; // Reset presensi
+  
+  callAPI('getSiswaEkstra', [namaEkstra]).then(res => {
+    if(res.status === 'success') {
+      daftarSiswaEkstra = res.data;
+      if(daftarSiswaEkstra.length === 0) {
+        container.innerHTML = '<div class="text-center py-5 text-muted fw-bold">Tidak ada siswa yang terdaftar di Ekstrakurikuler ini.</div>';
+        return;
+      }
+      renderTabelPresensiEkstra();
+    }
+  });
+}
+
+function renderTabelPresensiEkstra() {
+  const container = document.getElementById('list-siswa-ekstra');
+  let html = '';
+  
+  daftarSiswaEkstra.forEach(siswa => {
+    const nis = siswa.nis;
+    const status = presensiEkstraSaatIni[nis] || ''; // Kosong secara default
+    
+    html += `
+      <div class="d-flex justify-content-between align-items-center py-3 border-bottom border-light">
+        <div>
+          <h6 class="fw-bold text-dark mb-0">${siswa.nama}</h6>
+          <small class="text-muted fw-bold" style="font-size: 11px;">${siswa.kelas} • NIS: ${nis}</small>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn-status btn-hadir ${status === 'Hadir' ? 'active' : ''}" onclick="tandaiPresensiEkstra('${nis}', 'Hadir')">Hadir</button>
+          <button class="btn-status btn-izin ${status === 'Izin' ? 'active' : ''}" onclick="tandaiPresensiEkstra('${nis}', 'Izin')">Izin</button>
+          <button class="btn-status btn-sakit ${status === 'Sakit' ? 'active' : ''}" onclick="tandaiPresensiEkstra('${nis}', 'Sakit')">Sakit</button>
+          <button class="btn-status btn-alpha ${status === 'Alpha' ? 'active' : ''}" onclick="tandaiPresensiEkstra('${nis}', 'Alpha')">Alpha</button>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function tandaiPresensiEkstra(nis, status) {
+  presensiEkstraSaatIni[nis] = status;
+  renderTabelPresensiEkstra();
+}
+
+function tandaiHadirSemuaEkstra() {
+  if(daftarSiswaEkstra.length === 0) return;
+  daftarSiswaEkstra.forEach(siswa => {
+    presensiEkstraSaatIni[siswa.nis] = 'Hadir';
+  });
+  renderTabelPresensiEkstra();
+}
+
+// Konversi File ke Base64 (Syarat wajib untuk kirim gambar via Google Apps Script exec)
+function getBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+async function simpanJurnalEkstraFinal() {
+  const namaEkstra = document.getElementById('inpEkstraPilih').value;
+  const tanggal = document.getElementById('inpEkstraTanggal').value;
+  const materi = document.getElementById('inpEkstraMateri').value.trim();
+  const fotoInput = document.getElementById('inpEkstraFoto');
+  
+  if(!namaEkstra || !tanggal || !materi) return alert("Pilih Ekstra, Tanggal, dan isi Materi!");
+  
+  // Validasi presensi terisi semua
+  for (let i = 0; i < daftarSiswaEkstra.length; i++) {
+    if (!presensiEkstraSaatIni[daftarSiswaEkstra[i].nis]) {
+      return alert("Harap isi presensi untuk semua siswa terlebih dahulu!");
+    }
+  }
+
+  document.getElementById('loading-global').style.display = 'flex';
+  
+  let fotoBase64 = null;
+  if (fotoInput.files.length > 0) {
+    try {
+      fotoBase64 = await getBase64(fotoInput.files[0]);
+    } catch (e) {
+      document.getElementById('loading-global').style.display = 'none';
+      return alert("Gagal memproses file foto.");
+    }
+  }
+
+  const payload = {
+    tanggal: tanggal,
+    namaEkstra: namaEkstra,
+    materi: materi,
+    fotoBase64: fotoBase64,
+    presensi: presensiEkstraSaatIni
+  };
+
+  callAPI('simpanJurnalEkstra', [payload]).then(res => {
+    document.getElementById('loading-global').style.display = 'none';
+    if(res.status === 'success') {
+      alert("Jurnal dan presensi ekstrakurikuler berhasil disimpan!");
+      document.getElementById('inpEkstraMateri').value = '';
+      document.getElementById('inpEkstraFoto').value = '';
+      presensiEkstraSaatIni = {};
+      renderTabelPresensiEkstra();
+    } else {
+      alert(res.message);
+    }
+  });
+}
