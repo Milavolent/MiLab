@@ -101,8 +101,10 @@
           <div class="nav-item guru-nav" onclick="switchPage('page-guru-konsultasi-ortu', this); toggleSidebar(false)">
             <i class="bi bi-people-fill"></i> Konsultasi Ortu
           </div>
+          <div class="nav-item guru-nav" onclick="switchPage('page-guru-ekstra', this); toggleSidebar(false); initEkstraGuru();">
+            <i class="bi bi-dribbble"></i> Presensi Ekstra
+          </div>
 
-          
           <div class="nav-item siswa-nav active" onclick="switchPage('page-siswa-dashboard', this); toggleSidebar(false)">
             <i class="bi bi-grid-1x2"></i> Dashboard
           </div>
@@ -362,6 +364,56 @@
            </div>
            <div class="row g-4" id="list-konsultasi-ortu-guru"></div>
         </div>
+
+        <!-- PAGE PRESENSI EKSTRAKURIKULER -->
+<div id="page-guru-ekstra" class="page-section" style="display:none;">
+  <div class="mb-4">
+    <h2 class="fw-bold text-dark mb-0">Jurnal & Presensi Ekstrakurikuler</h2>
+    <p class="text-muted mb-0">Kelola kehadiran dan dokumentasi kegiatan</p>
+  </div>
+
+  <div class="row g-4">
+    <!-- Kolom Kiri: Form Jurnal -->
+    <div class="col-lg-5">
+      <div class="glass-card p-4">
+        <h5 class="fw-bold text-dark mb-4">Detail Kegiatan</h5>
+        
+        <label class="small fw-bold text-muted mb-1">Pilih Ekstrakurikuler</label>
+        <select id="inpEkstraPilih" class="form-select form-select-lg bg-light border-0 mb-3" onchange="muatSiswaEkstra()">
+          <option value="">-- Pilih Ekstrakurikuler --</option>
+        </select>
+
+        <label class="small fw-bold text-muted mb-1">Tanggal Kegiatan</label>
+        <input type="date" id="inpEkstraTanggal" class="form-control form-control-lg bg-light border-0 mb-3" required>
+
+        <label class="small fw-bold text-muted mb-1">Materi yang Diajarkan</label>
+        <textarea id="inpEkstraMateri" class="form-control bg-light border-0 rounded-3 mb-3" rows="4" placeholder="Tuliskan materi hari ini..." required></textarea>
+
+        <label class="small fw-bold text-muted mb-1">Bukti Foto Kegiatan</label>
+        <input type="file" id="inpEkstraFoto" accept="image/*" class="form-control bg-light border-0 mb-4" required>
+        
+        <button class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm" onclick="simpanJurnalEkstraFinal()">
+          SIMPAN JURNAL & PRESENSI
+        </button>
+      </div>
+    </div>
+
+    <!-- Kolom Kanan: Daftar Presensi Siswa -->
+    <div class="col-lg-7">
+      <div class="glass-card p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3">
+          <h5 class="fw-bold text-dark mb-0">Daftar Siswa</h5>
+          <button class="btn btn-sm btn-success fw-bold px-3 py-1 rounded-pill" onclick="tandaiHadirSemuaEkstra()">
+            <i class="bi bi-check2-all me-1"></i>Hadir Semua
+          </button>
+        </div>
+        <div id="list-siswa-ekstra" class="d-flex flex-column gap-1 overflow-auto" style="max-height: 500px;">
+          <div class="text-center py-5 text-muted fw-bold">Pilih Ekstrakurikuler terlebih dahulu.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
           
         <!-- 9. DASHBOARD SISWA -->
         <div id="page-siswa-dashboard" class="page-section" style="display:none;">
